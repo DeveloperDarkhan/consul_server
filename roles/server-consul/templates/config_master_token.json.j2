@@ -1,0 +1,31 @@
+{
+    "server": true,
+    "bootstrap_expect": {{ groups['consul_servers'] | length }},
+    "client_addr": "0.0.0.0",
+    "advertise_addr": "{{ansible_enp0s8.ipv4.address}}",
+    "node_name": "{{node_name_inv}}",
+    "domain": "consul",
+    "enable_script_checks": true,
+      "dns_config": {
+        "enable_truncate": true,
+        "only_passing": true
+    },
+    "datacenter": "jysanbank",
+    "data_dir": "/data/consul/data",
+    "pid_file": "/data/consul/consul.pid",
+    "encrypt": "{{reg_keygen.stdout}}",
+    "log_level": "INFO",
+    "enable_syslog": true,
+    "leave_on_terminate": true,
+    "rejoin_after_leave": true,
+    "start_join": [ {% for item in groups['consul_servers'] %} 
+        "{{ item }}"{% if not loop.last %},{% endif %}
+    {% endfor %}],
+    "telemetry": { "disable_compat_1.9": false},
+    "ui_config":{"enabled": true},
+    "acl": {
+   		 "enabled": true,
+   		 "default_policy": "deny",
+   		 "down_policy": "extend-cache", 
+    "tokens": {"master": "{{ reg_master_token.stdout_lines[1].split(':')[1].strip() }}"}}
+}

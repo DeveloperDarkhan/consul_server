@@ -1,0 +1,9 @@
+---
+
+ - hosts: consul_servers
+   become: true
+   gather_facts: true
+   
+   roles:
+   - server-consul
+   

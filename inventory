@@ -1,0 +1,3 @@
+[consul_servers]
+192.168.56.112 node_name_inv=node_1
+192.168.56.122 node_name_inv=node_2

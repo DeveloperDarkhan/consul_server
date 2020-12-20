@@ -1,0 +1,147 @@
+- name: Check service is running
+  command: systemctl status consul
+  ignore_errors: yes
+  changed_when: false
+  register: check_consul
+
+- debug:
+    msg: "{{ check_consul }}"
+  when: check_consul.rc == 0
+
+- debug:
+    msg: "Amount of servers: {{ groups['consul_servers'] | length }}"
+
+- name: Stop service if service exist and running
+  systemd:
+    state: stopped
+    name: consul
+  when:
+    - check_consul.rc == 0
+    - "'Active: active' in check_consul.stdout"
+
+- name: Gather all users which start name with consul*
+  shell:
+    "cat /etc/passwd | grep 'consul[0-9]*' | cut -d: -f1"
+  register: reg_users
+
+- name: Delete users if somebody exist above
+  user:
+    name: "{{ item }}"
+    state: absent
+    remove: yes
+  with_items:
+    - "{{reg_users.stdout_lines}}"
+  when: reg_users.stdout != ""
+
+- name: Delete groups if somebody exist above
+  group:
+    name: "{{item}}"
+    state: absent
+  with_items:
+    - "{{reg_users.stdout_lines}}"
+  when: reg_users.stdout != ""
+
+
+- name: Create user
+  user:
+    name: consul 
+    password_lock: yes
+    shell: /sbin/nologin
+    home: /data/consul      
+
+- name: Create initial directories
+  file:
+    path: "{{ item }}" 
+    state: directory
+    owner: consul
+    group: consul
+    mode: 0700
+  with_items:
+    - /data/consul/data
+    - /data/consul/etc
+
+- name: Upload consul 
+  copy:
+    src: "consul_1.9.0_linux_amd64.zip"
+    dest: "/data/consul/"
+    mode: 0700
+    owner: consul
+    group: consul
+
+- name: Unarchive a file that is already on the remote machine
+  unarchive:
+    src: /data/consul/consul_1.9.0_linux_amd64.zip
+    dest: /data/consul/
+    remote_src: yes
+
+- name: Delete zip file in a remote server
+  file:
+    path: /data/consul/consul_1.9.0_linux_amd64.zip
+    state: absent
+
+- name: Add permissions to the new directories and files recursively
+  file:
+    path: /data/
+    owner: consul
+    group: consul
+    recurse: yes
+    mode: 0700
+
+- name: Trying to get encrypt key for gossip comminicate
+  command: /data/consul/consul keygen
+  register: reg_keygen
+  run_once: True
+
+- debug: 
+    msg="Key to gossip communications {{ reg_keygen.stdout }}"
+  when: reg_keygen.rc == 0
+
+- name: Copy general configs to consul servers
+  template:
+    src: templates/{{item.name}}.j2
+    dest: "{{item.path}}{{item.name}}"
+  with_items:
+    - {name: config.json, path: "/data/consul/etc/"}
+    - {name: consul.service, path: "/etc/systemd/system/"}
+
+- name: Restart and enable consul
+  systemd:
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+    name: consul
+
+- name: Wait for
+  wait_for:
+    port: 8500
+    delay: 10
+  run_once: True
+
+- name: Create master token once for everyone nodes
+  command: /data/consul/consul acl bootstrap
+  register: reg_master_token
+  run_once: True
+
+- debug:
+    msg="Master token for servers to gossip communications {{ reg_master_token.stdout_lines[1].split(':')[1].strip()}}"
+  when: reg_master_token.rc == 0
+  run_once: True
+
+- name: Add master token to servers
+  template:
+    src: templates/{{item.name}}.j2
+    dest: "{{item.path}}"
+  with_items:
+    - {name: config_master_token.json, path: "/data/consul/etc/config.json"}
+
+
+- name: Restart consul servers
+  systemd:
+    state: restarted
+    name: consul
+
+- name: Check it out consul's config
+  command: /data/consul/consul validate /data/consul/etc/
+  register: check_consul
+
+- debug: msg="Checked consul service {{check_consul.stdout_lines}}"
