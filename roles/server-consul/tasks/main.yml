@@ -168,3 +168,8 @@
 
 - debug: msg="Checked consul service {{check_consul.stdout_lines}}"
 
+- name: Put all keys into file
+  copy:
+    content: "encrypt: {{reg_keygen.stdout}} \nmaster_token: {{reg_master_token.stdout_lines[1].split(':')[1].strip()}} \nclient_token: {{ reg_token_client.stdout_lines[1].split(':')[1].strip() }}"
+    dest: "~/.encrypt_keys"
+  delegate_to: localhost

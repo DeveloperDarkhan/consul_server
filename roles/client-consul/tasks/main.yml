@@ -1,0 +1,117 @@
+#- name: Put data into files
+#  copy:
+#    content: "new_content: 123"
+#    dest: "~/.encrypt_all_agents"
+#  delegate_to: localhost
+
+- name: Check service is running
+  command: systemctl status consul
+  ignore_errors: yes
+  changed_when: false
+  register: check_consul
+
+- debug:
+    msg: "{{ check_consul }}"
+  when: check_consul.rc == 0
+
+- debug:
+    msg: "Amount of servers: {{ groups['consul_servers'] | length }}"
+
+- name: Stop service if service exist and running
+  systemd:
+    state: stopped
+    name: consul
+  when:
+    - check_consul.rc == 0
+    - "'Active: active' in check_consul.stdout"
+
+- name: Gather all users which start name with consul*
+  shell:
+    "cat /etc/passwd | grep 'consul[0-9]*' | cut -d: -f1"
+  register: reg_users
+
+- name: Delete users if somebody exist above
+  user:
+    name: "{{ item }}"
+    state: absent
+    remove: yes
+  with_items:
+    - "{{reg_users.stdout_lines}}"
+  when: reg_users.stdout != ""
+
+- name: Delete groups if somebody exist above
+  group:
+    name: "{{item}}"
+    state: absent
+  with_items:
+    - "{{reg_users.stdout_lines}}"
+  when: reg_users.stdout != ""
+
+
+- name: Create user
+  user:
+    name: consul 
+    password_lock: yes
+    shell: /sbin/nologin
+    home: /data/consul      
+
+- name: Create initial directories
+  file:
+    path: "{{ item }}" 
+    state: directory
+    owner: consul
+    group: consul
+    mode: 0700
+  with_items:
+    - /data/consul/data
+    - /data/consul/etc
+
+- name: Upload consul 
+  copy:
+    src: "consul_1.9.0_linux_amd64.zip"
+    dest: "/data/consul/"
+    mode: 0700
+    owner: consul
+    group: consul
+
+- name: Unarchive a file that is already on the remote machine
+  unarchive:
+    src: /data/consul/consul_1.9.0_linux_amd64.zip
+    dest: /data/consul/
+    remote_src: yes
+
+- name: Delete zip file in a remote server
+  file:
+    path: /data/consul/consul_1.9.0_linux_amd64.zip
+    state: absent
+
+- name: Add permissions to the new directories and files recursively
+  file:
+    path: /data/
+    owner: consul
+    group: consul
+    recurse: yes
+    mode: 0700
+
+- name: Copy general configs to consul servers
+  template:
+    src: templates/{{item.name}}.j2
+    dest: "{{item.path}}{{item.name}}"
+  with_items:
+    - {name: config.json, path: "/data/consul/etc/"}
+    - {name: consul.service, path: "/etc/systemd/system/"}
+    - {name: agent-policy.hcl, path: "/data/consul/etc/"}
+
+- name: Check it out consul's config
+  command: /data/consul/consul validate /data/consul/etc/
+  register: check_consul
+
+- debug: msg="Checked consul service {{check_consul.stdout_lines}}"
+
+- name: Restart and enable consul
+  systemd:
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+    name: consul
+

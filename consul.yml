@@ -3,7 +3,19 @@
  - hosts: consul_servers
    become: true
    gather_facts: true
-   
    roles:
    - server-consul
-   
+   tags:
+   - server-consul
+
+
+ - hosts: consul_clients
+   become: true
+   gather_facts: true
+   ignore_errors: yes
+   vars_files:
+     - ~/.encrypt_keys
+   roles:
+   - client-consul
+   tags:
+   - client-consul
