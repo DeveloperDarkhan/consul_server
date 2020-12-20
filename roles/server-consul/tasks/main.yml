@@ -114,7 +114,7 @@
 - name: Wait for
   wait_for:
     port: 8500
-    delay: 10
+    delay: 15
   run_once: True
 
 - name: Create master token once for everyone nodes
@@ -133,8 +133,30 @@
     dest: "{{item.path}}"
   with_items:
     - {name: config_master_token.json, path: "/data/consul/etc/config.json"}
+   # - {name: agent_client_policy.hcl, path "/data/consul/agent_kv.hcl"}
 
+- name: Copy agent key value store 
+  copy:
+    src: "agent_client_policy.hcl"
+    dest: /data/consul/agent_kv.hcl
+    owner: consul
+    group: consul
+    mode: '0700'
 
+- name: Create policy for agent's clients
+  shell: cd /data/consul/ && ./consul acl policy create -name agent-client-kv -rules @agent_kv.hcl -token {{ reg_master_token.stdout_lines[1].split(':')[1].strip()}}
+  run_once: True  
+  register: reg_agent_policy
+
+- debug: msg="{{reg_agent_policy}}"
+
+- name: Create agent token
+  command: "/data/consul/consul acl token create -description 'agent clients tokens' -policy-name agent-client-kv -token {{ reg_master_token.stdout_lines[1].split(':')[1].strip()}}"
+  register: reg_token_client
+  run_once: True
+
+- debug: msg="Display agent token ID for clients {{ reg_token_client.stdout_lines[1].split(':')[1].strip() }}"
+  
 - name: Restart consul servers
   systemd:
     state: restarted
@@ -145,3 +167,4 @@
   register: check_consul
 
 - debug: msg="Checked consul service {{check_consul.stdout_lines}}"
+
