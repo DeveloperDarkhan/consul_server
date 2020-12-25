@@ -102,14 +102,14 @@
     recurse: yes
     mode: 0700
 
-- name: Copy general configs to consul servers
+- name: Copy general configs to consul clients
   template:
     src: templates/{{item.name}}.j2
     dest: "{{item.path}}{{item.name}}"
   with_items:
     - {name: config.json, path: "/data/consul/etc/"}
     - {name: consul.service, path: "/etc/systemd/system/"}
-    - {name: agent-policy.hcl, path: "/data/consul/etc/"}
+    - {name: agent-policy.json, path: "/data/consul/etc/"}
 
 - name: Check it out consul's config
   command: /data/consul/consul validate /data/consul/etc/
