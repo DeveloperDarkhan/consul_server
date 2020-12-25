@@ -47,6 +47,10 @@
     - "{{reg_users.stdout_lines}}"
   when: reg_users.stdout != ""
 
+- name: Creates directory data/consul
+  file:
+    path: /data/consul
+    state: directory
 
 - name: Create user
   user:
@@ -73,6 +77,11 @@
     mode: 0700
     owner: consul
     group: consul
+
+- name: Install Unzip archivator
+  yum:
+    name: unzip
+    state: present
 
 - name: Unarchive a file that is already on the remote machine
   unarchive:
