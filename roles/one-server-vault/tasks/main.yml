@@ -118,19 +118,81 @@
     recurse: yes
     mode: 0700
 
+- name: ADD folder executable for all users /data
+  file:
+    path: /data
+    mode: 0777
+
 - name: Restart and enable Service
   systemd:
     state: restarted
     enabled: yes
     daemon_reload: yes
     name: vault
-    pause:
-      seconds: 10
+
+- pause:
+    seconds: 10
 
 - name: show vault status
   shell:
     /data/vault/vault status
+  environment:
+    VAULT_ADDR: http://127.0.0.1:8200
+  ignore_errors: yes
+  register: stats
 
+- debug:
+    msg="{{ stats.stdout_lines }}"
+
+- name: Vault operate init 
+  shell: /data/vault/vault operator init -key-shares=1 -key-threshold=1
+  ignore_errors: yes
+  environment:
+    VAULT_ADDR: http://127.0.0.1:8200
+  when:
+    stats.rc == 2
+  register: init_keys
+
+- debug:
+    msg="{{ init_keys.stdout_lines[0].split(':')[1].strip() }}" "{{ init_keys.stdout_lines[2].split(':')[1].strip() }}"
+  when:
+    init_keys.stdout != ""
+
+- name: Rigister one unseal token
+  shell: /data/vault/vault operator unseal {{init_keys.stdout_lines[0].split(':')[1].strip()}}
+  environment: 
+    VAULT_ADDR: http://127.0.0.1:8200
+
+- name: Login as root
+  shell: /data/vault/vault login {{init_keys.stdout_lines[2].split(':')[1].strip()}}
+  environment: 
+    VAULT_ADDR: http://127.0.0.1:8200
+
+- name: Enable the database secrets engine
+  shell: /data/vault/vault vault secrets enable database
+  environment:
+    VAULT_ADDR: http://127.0.0.1:8200
+  register: res_access
+  ignore_errors: yes  
+
+- debug: msg="{{ res_access.stderr }}"
+
+
+- name: Enable to secret something
+  shell: /data/vault/vault secrets enable database
+  environment:
+    VAULT_ADDR: http://127.0.0.1:8200
+
+
+- name: Configure Vault with the mongoDB plugin
+  shell: /data/vault/vault write database/config/my-mongodb-database \
+    plugin_name=mongodb-database-plugin \
+    allowed_roles="my-role" \
+    connection_url="mongodb://{{username}}:{{password}}@127.0.0.1:27017/admin" \
+    username="Dar" \
+    password="45004920"
+  environment:
+    VAULT_ADDR: http://127.0.0.1:8200
 
 
 #PIDFile=/var/run/vault/vault.pid

@@ -5,8 +5,8 @@ After=network-online.target
 ConditionFileNotEmpty=/data/vault/etc/config.hcl
 
 [Service]
-Environment=GOMAXPROCS=2
-Environment="VAULT_ADDR=http://127.0.0.1:8200"
+User=vault
+Group=vault
 Restart=on-failure
 StandardOutput=/data/vault/logs/output.log
 StandardError=/data/vault/logs/error.log
