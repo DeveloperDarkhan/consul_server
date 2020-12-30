@@ -8,14 +8,40 @@
    tags:
    - server-consul
 
+ - hosts: consul_servers
+   become: true
+   gather_facts: true
+   roles:
+   - server-consul-acl-not
+   tags:
+   - server-consul-acl-not
 
  - hosts: consul_clients
    become: true
    gather_facts: true
-   ignore_errors: yes
+   roles:
+   - client-consul-acl-not
+   tags:
+   - client-consul-acl-not
+
+
+ - hosts: consul_clients
+   become: true
+   gather_facts: true
    vars_files:
      - ~/.encrypt_keys
    roles:
    - client-consul
    tags:
    - client-consul
+
+
+ - hosts: vault_servers
+   become: true
+   gather_facts: true
+   vars_files:
+     - ~/.encrypt_keys
+   roles:
+   - server-vault 
+   tags:
+   - server-vault

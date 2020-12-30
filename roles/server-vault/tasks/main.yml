@@ -1,0 +1,130 @@
+- name: Check Vault is running 
+  command: systemctl status vault
+  ignore_errors: yes
+  changed_when: false
+  register: check_service
+  
+- debug:
+    msg: "{{ check_service }}"
+  when: check_service.rc == 0
+
+- name: Stop service if service exist and running
+  systemd:
+    state: stopped
+    name: vault
+  when:
+    - check_service.rc == 0
+    - "'Active: active' in check_service.stdout"
+
+- name: Gather all users which start name with Vault*
+  shell:
+    "cat /etc/passwd | grep 'vault[0-9]*' | cut -d: -f1"
+  register: reg_users
+
+- debug:
+    msg: "{{ reg_users }}"
+
+- name: Delete users if somebody exist above
+  user:
+    name: "{{ item }}"
+    state: absent
+    remove: yes
+  with_items:
+    - "{{reg_users.stdout_lines}}"
+  when: reg_users.stdout != ""
+
+- name: Delete folders and path Old version of need service
+  file:
+    path: /data/vault
+    state: absent
+
+- name: Delete groups if somebody exist above
+  group:
+    name: "{{item}}"
+    state: absent
+  with_items:
+    - "{{reg_users.stdout_lines}}"
+  when: reg_users.stdout != ""
+
+- name: Creates directory data/vault
+  file:
+    path: /data/vault
+    state: directory
+
+- name: Create user Vault
+  user:
+    name: vault
+    password_lock: yes
+    shell: /sbin/nologin
+    home: /data/vault 
+
+- name: Create initial directories
+  file:
+    path: "{{ item }}" 
+    state: directory
+    owner: vault
+    group: vault
+    mode: 0700
+  with_items:
+    - /data/vault/data
+    - /data/vault/etc
+    - /data/vault/logs/vault
+    - /data/vault/vault-data
+
+- name: Upload Vault 
+  copy:
+    src: "vault_1.6.1_linux_amd64.zip"
+    dest: "/data/vault/"
+    mode: 0700
+    owner: vault
+    group: vault
+
+- name: Copy unit service document
+  copy:
+    src: "vault.service"
+    dest: "/etc/systemd/system/"
+    owner: vault
+    group: vault
+
+- name: Copy general configs to consul servers
+  template:
+    src: templates/{{item.name}}.j2
+    dest: "{{item.path}}{{item.name}}"
+  with_items:
+    - {name: config.hcl, path: "/data/vault/etc/"}
+
+
+- name: Install Unzip archivator
+  yum:
+    name: unzip
+    state: present
+
+
+- name: Unarchive a file that is already on the remote machine
+  unarchive:
+    src: /data/vault/vault_1.6.1_linux_amd64.zip
+    dest: /data/vault/
+    remote_src: yes
+
+- name: Delete zip file in a remote server
+  file:
+    path: /data/vault/vault_1.6.1_linux_amd64.zip
+    state: absent
+
+- name: Add permissions to the new directories and files recursively
+  file:
+    path: /data/vault
+    owner: vault
+    group: vault
+    recurse: yes
+    mode: 0700
+
+- name: Restart and enable Service
+  systemd:
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+    name: vault
+
+#PIDFile=/var/run/vault/vault.pid
+#ExecStart=/data/vault/vault server -config=/data/vault/etc/vault_server.hcl -log-level=debug

@@ -24,6 +24,14 @@
     "cat /etc/passwd | grep 'consul[0-9]*' | cut -d: -f1"
   register: reg_users
 
+- name: Delete folders and path Old version of need service
+  file:
+    path: "{{item}}"
+    state: absent
+  with_items:
+    - /data/consul
+    - /var/consul
+
 - name: Delete users if somebody exist above
   user:
     name: "{{ item }}"

@@ -1,0 +1,17 @@
+{
+  "server": true,
+  "node_name": "{{node_name_inv}}",
+  "datacenter": "dc1",
+  "data_dir": "/data/consul/data",
+  "bind_addr": "0.0.0.0",
+  "client_addr": "0.0.0.0",
+  "advertise_addr": "{{ansible_enp0s8.ipv4.address}}",
+  "bootstrap_expect": {{ groups['consul_servers'] | length }},
+  "retry_join": [ {% for item in groups['consul_servers'] %}
+        "{{ item }}"{% if not loop.last %},{% endif %}
+    {% endfor %}],
+  "ui": true,
+  "log_level": "DEBUG",
+  "enable_syslog": true,
+  "acl_enforce_version_8": false
+}
