@@ -159,11 +159,11 @@
     init_keys.stdout != ""
 
 - name: Ansible create file with secrets keys
-    copy:
-      dest: "/data/vault/init.file"
-      content: |
-        init_keys.stdout_lines[0].split(':')[1].strip()
-        init_keys.stdout_lines[2].split(':')[1].strip()
+  copy:
+    dest: "/data/vault/init.file"
+    content: |
+      {{init_keys.stdout_lines[0].split(':')[1].strip()}}
+      {{init_keys.stdout_lines[2].split(':')[1].strip()}}
 
 - name: Rigister one unseal token
   shell: /data/vault/vault operator unseal {{init_keys.stdout_lines[0].split(':')[1].strip()}}
@@ -176,7 +176,7 @@
     VAULT_ADDR: http://127.0.0.1:8200
 
 - name: Enable the database secrets engine
-  shell: /data/vault/vault vault secrets enable database
+  shell: /data/vault/vault secrets enable database
   environment:
     VAULT_ADDR: http://127.0.0.1:8200
   register: res_access
