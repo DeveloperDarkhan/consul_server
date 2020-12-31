@@ -45,3 +45,12 @@
    - server-vault 
    tags:
    - server-vault
+
+ - hosts: vault_one_server
+   become: true
+   gather_facts: true
+   roles:
+   - one-server-vault
+   tags:
+   - one-server-vault
+

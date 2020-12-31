@@ -1,0 +1,19 @@
+[Unit]
+Description=vault service
+Requires=network-online.target
+After=network-online.target
+ConditionFileNotEmpty=/data/vault/etc/config.hcl
+
+[Service]
+Environment=GOMAXPROCS=2
+Environment="VAULT_ADDR=http://127.0.0.1:8200"
+Restart=on-failure
+StandardOutput=/data/vault/logs/output.log
+StandardError=/data/vault/logs/error.log
+ExecStart=/data/vault/vault server -config=/data/vault/etc/config.hcl
+LimitMEMLOCK=infinity
+ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target
