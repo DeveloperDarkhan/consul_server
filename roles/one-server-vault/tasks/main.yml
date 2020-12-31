@@ -184,19 +184,33 @@
 
 - debug: msg="{{ res_access.stderr }}"
 
- 
+- name: check if mongod was started
+  shell: "ps -ef | grep mongod | awk '{print $8}' |  wc -l"
+  register: ps_mongod
 
+- debug: msg="{{ps_mongod}}"
 
-# - name: Configure Vault with the mongoDB plugin
-#   shell: /data/vault/vault write database/config/my-mongodb-database \
-#     plugin_name=mongodb-database-plugin \
-#     allowed_roles="my-role" \
-#     connection_url="mongodb://{{username}}:{{password}}@127.0.0.1:27017/admin" \
-#     username="Dar" \
-#     password="45004920"
-#   environment:
-#     VAULT_ADDR: http://127.0.0.1:8200
+#- name: Run a script with arguments (free form)
+#  #script: /tmp/tt.sh --some-argument 1234
+#  command: sh /tmp/tt.sh
+#  environment:
+#    VAULT_ADDR: http://127.0.0.1:8200
+#  when:
+#    ps_mongod.stdout_lines > 1
 
+#- name: Configure Vault with the mongoDB plugin
+#  shell: 
+#    ./vault write database/config/my-mongodb-database
+#    plugin_name=mongodb-database-plugin
+#    allowed_roles="my-role"
+#    connection_url="mongodb://{{username}}:{{password}}@127.0.0.1:27017/admin"
+#    username="Dar"
+#    password="45004920"
+#  environment:
+#    VAULT_ADDR: http://127.0.0.1:8200
+#  when:
+#    ps_mongod.stdout_lines > 1
+    
 
 #PIDFile=/var/run/vault/vault.pid
 #ExecStart=/data/vault/vault server -config=/data/vault/etc/vault_server.hcl -log-level=debug
