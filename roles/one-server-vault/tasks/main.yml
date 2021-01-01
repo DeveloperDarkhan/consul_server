@@ -158,6 +158,13 @@
   when:
     init_keys.stdout != ""
 
+- name: Ansible create file with secrets keys
+    copy:
+      dest: "/data/vault/init.file"
+      content: |
+        init_keys.stdout_lines[0].split(':')[1].strip()
+        init_keys.stdout_lines[2].split(':')[1].strip()
+
 - name: Rigister one unseal token
   shell: /data/vault/vault operator unseal {{init_keys.stdout_lines[0].split(':')[1].strip()}}
   environment: 
@@ -177,22 +184,18 @@
 
 - debug: msg="{{ res_access.stderr }}"
 
-
-- name: Enable to secret something
-  shell: /data/vault/vault secrets enable database
-  environment:
-    VAULT_ADDR: http://127.0.0.1:8200
+ 
 
 
-- name: Configure Vault with the mongoDB plugin
-  shell: /data/vault/vault write database/config/my-mongodb-database \
-    plugin_name=mongodb-database-plugin \
-    allowed_roles="my-role" \
-    connection_url="mongodb://{{username}}:{{password}}@127.0.0.1:27017/admin" \
-    username="Dar" \
-    password="45004920"
-  environment:
-    VAULT_ADDR: http://127.0.0.1:8200
+# - name: Configure Vault with the mongoDB plugin
+#   shell: /data/vault/vault write database/config/my-mongodb-database \
+#     plugin_name=mongodb-database-plugin \
+#     allowed_roles="my-role" \
+#     connection_url="mongodb://{{username}}:{{password}}@127.0.0.1:27017/admin" \
+#     username="Dar" \
+#     password="45004920"
+#   environment:
+#     VAULT_ADDR: http://127.0.0.1:8200
 
 
 #PIDFile=/var/run/vault/vault.pid
