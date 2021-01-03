@@ -23,4 +23,4 @@
 192.168.56.132 node_name_inv=Vault_sr_2
 
 [vault_one_server]
-192.168.56.134 node_name_inv=Vault_sr_one
+192.168.56.121 node_name_inv=Vault_sr_one
