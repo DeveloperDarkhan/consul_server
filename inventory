@@ -3,23 +3,24 @@
 192.168.56.108 node_name_inv=consul_sr_2
 192.168.56.109 node_name_inv=consul_sr_3
 
+[consul_one_server]
+192.168.56.109 node_name_inv=consul_sr_1
+
 [consul_clients]
 #192.168.56.131 node_name_inv=Vault_cl_1
 #192.168.56.132 node_name_inv=Vault_cl_2
 #192.168.56.150 node_name_inv=client_1
 #192.168.56.133 node_name_inv=consul-cl-1
 #192.168.56.134 node_name_inv=consul-cl-2
-192.168.56.131 node_name_inv=consul-cl-1
-192.168.56.132 node_name_inv=consul-cl-2
-
-
+192.168.56.121 node_name_inv=consul-cl-1
+192.168.56.122 node_name_inv=consul-cl-2
+192.168.56.123 node_name_inv=consul-cl-3
 
 [vault_servers]
 #192.168.56.131 node_name_inv=Vault_cl_1
 #192.168.56.132 node_name_inv=Vault_cl_2
 192.168.56.131 node_name_inv=Vault_sr_1
 192.168.56.132 node_name_inv=Vault_sr_2
-
 
 [vault_one_server]
 192.168.56.134 node_name_inv=Vault_sr_one
